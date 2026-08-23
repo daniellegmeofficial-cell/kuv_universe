@@ -65,7 +65,7 @@ class SocialFeedButtons(discord.ui.View):
         await interaction.message.edit(view=self)
         await interaction.response.defer()
 
-# 🤖 UPGRADED BOT INITIALIZATION ENGINE
+# 🤖 FORCED LOCAL SERVER SYNC ENGINE
 class Bot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
@@ -74,10 +74,14 @@ class Bot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        await self.tree.sync()
-        print("⚡ KUV Social Media has successfully synchronized all global command paths!")
+        # 🟢 PUT YOUR NUMBER BELOW (Right-click server name -> Copy Server ID)
+        MY_SERVER = discord.Object(id=PASTE_YOUR_SERVER_ID_NUMBER_HERE)
+        self.tree.copy_global_to(guild=MY_SERVER)
+        await self.tree.sync(guild=MY_SERVER)
+        print("⚡ KUV Social Media has forcefully synchronized all local command paths!")
 
 bot = Bot()
+
 
 # 📝 1. THE USER POSTING COMMAND
 @bot.tree.command(name="post", description="Post an official update to the KUV Universe!")
