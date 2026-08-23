@@ -3,6 +3,8 @@ from discord import app_commands
 import sqlite3
 import time
 import os
+import threading
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 # 💾 CONNECT TO SOCIAL ALGORITHM DATABASE
 db = sqlite3.connect('kuv_social_media.db')
@@ -15,8 +17,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS likes (user_id TEXT, post_id INTEGE
 cursor.execute('''CREATE TABLE IF NOT EXISTS reposts (user_id TEXT, post_id INTEGER)''')
 db.commit()
 
-# YOUR DISCORD USER ID HERE (Only you can use the admin add_likes command!)
-ADMIN_USER_ID = "968948615726911488"
+# YOUR DISCORD USER ID HERE
+ADMIN_USER_ID = "YOUR_PERSONAL_DISCORD_USER_ID"
 
 class SocialFeedButtons(discord.ui.View):
     def __init__(self, post_id):
@@ -79,12 +81,6 @@ class Bot(discord.Client):
 
 bot = Bot()
 
-        print("⚡ KUV Social Media has forcefully synchronized all local command paths!")
-
-bot = Bot()
-
-
-# 📝 1. THE USER POSTING COMMAND
 @bot.tree.command(name="post", description="Post an official update to the KUV Universe!")
 async def post(interaction: discord.Interaction, text_content: str, upload_art_url: str = None):
     username = interaction.user.display_name
@@ -93,7 +89,6 @@ async def post(interaction: discord.Interaction, text_content: str, upload_art_u
     db.commit()
     await interaction.response.send_message("✨ Posted successfully! Your post is now entering the KUV Algorithm.", ephemeral=True)
 
-# 🚀 2. THE ALGORITHM FYP FEED (Pulls the top trending posts)
 @bot.tree.command(name="fyp", description="View the top trending posts on the KUV algorithm!")
 async def fyp(interaction: discord.Interaction):
     cursor.execute("SELECT post_id, username, content, image_url, likes_count, reposts_count, bot_likes FROM posts ORDER BY (likes_count + bot_likes + (reposts_count * 2)) DESC LIMIT 5")
@@ -120,7 +115,6 @@ async def fyp(interaction: discord.Interaction):
         view = SocialFeedButtons(post_id)
         await interaction.channel.send(embed=embed, view=view)
 
-# 👑 3. SECRET ADMIN COMMAND: ADD BOT LIKES
 @bot.tree.command(name="add_likes", description="Admin Only: Inject bot likes onto a trending post!")
 async def add_likes(interaction: discord.Interaction, post_id: int, amount: int):
     if str(interaction.user.id) != ADMIN_USER_ID:
@@ -136,6 +130,16 @@ async def add_likes(interaction: discord.Interaction, post_id: int, amount: int)
     db.commit()
     
     await interaction.response.send_message(f"🚀 Success! Injected **{amount} Bot Likes** onto Post #{post_id}.", ephemeral=True)
+
+# 🌐 INTERNAL WEB SERVER FOR RENDER HEALTH CHECKS
+def run_web_server():
+    port = int(os.getenv("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
+    print(f"⚓ Health check server listening on port {port}")
+    server.serve_forever()
+
+# Start the web server in a background thread so it doesn't block the bot
+threading.Thread(target=run_web_server, daemon=True).start()
 
 # Pulls your secure token from your Render Environment variable vault safely
 bot.run(os.getenv("TOKEN_PLACEHOLDER"))
