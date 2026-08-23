@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 import sqlite3
 import time
+import os
 
 # 💾 CONNECT TO SOCIAL ALGORITHM DATABASE
 db = sqlite3.connect('kuv_social_media.db')
@@ -15,7 +16,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS reposts (user_id TEXT, post_id INTE
 db.commit()
 
 # YOUR DISCORD USER ID HERE (Only you can use the admin add_likes command!)
-ADMIN_USER_ID = "968948615726911488"
+ADMIN_USER_ID = "YOUR_PERSONAL_DISCORD_USER_ID"
 
 class SocialFeedButtons(discord.ui.View):
     def __init__(self, post_id):
@@ -64,13 +65,17 @@ class SocialFeedButtons(discord.ui.View):
         await interaction.message.edit(view=self)
         await interaction.response.defer()
 
+# 🤖 UPGRADED BOT INITIALIZATION ENGINE
 class Bot(discord.Client):
     def __init__(self):
-        super().__init__(intents=discord.Intents.default())
+        intents = discord.Intents.default()
+        intents.members = True 
+        super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
         await self.tree.sync()
+        print("⚡ KUV Social Media has successfully synchronized all global command paths!")
 
 bot = Bot()
 
@@ -127,4 +132,5 @@ async def add_likes(interaction: discord.Interaction, post_id: int, amount: int)
     
     await interaction.response.send_message(f"🚀 Success! Injected **{amount} Bot Likes** onto Post #{post_id}.", ephemeral=True)
 
-bot.run("TOKEN_PLACEHOLDER")
+# Pulls your secure token from your Render Environment variable vault safely
+bot.run(os.getenv("TOKEN_PLACEHOLDER"))
