@@ -15,10 +15,36 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS posts
                   (post_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, username TEXT, content TEXT, image_url TEXT, likes_count INTEGER, reposts_count INTEGER, bot_likes INTEGER DEFAULT 0, timestamp REAL)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS likes (user_id TEXT, post_id INTEGER)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS reposts (user_id TEXT, post_id INTEGER)''')
+
+# 💬 NEW DATABASE TABLE FOR TWITTER-STYLE REPLIES
+cursor.execute('''CREATE TABLE IF NOT EXISTS replies 
+                  (reply_id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER, user_id TEXT, username TEXT, content TEXT, timestamp REAL)''')
 db.commit()
 
 # YOUR DISCORD USER ID HERE
 ADMIN_USER_ID = "YOUR_PERSONAL_DISCORD_USER_ID"
+
+# 💬 INTERACTIVE POPUP MODAL FOR TYPING A REPLY
+class ReplyModal(discord.ui.Modal, title="💬 Drop Your Tea / Reply"):
+    reply_text = discord.ui.TextInput(
+        label="What's the word on the netz?",
+        style=discord.TextStyle.paragraph,
+        placeholder="Type your reply or gossip commentary here...",
+        required=True,
+        max_length=500
+    )
+
+    def __init__(self, post_id):
+        super().__init__()
+        self.post_id = post_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        username = interaction.user.display_name
+        # Save comment rows securely into the new table
+        cursor.execute("INSERT INTO replies (post_id, user_id, username, content, timestamp) VALUES (?, ?, ?, ?, ?)",
+                       (self.post_id, str(interaction.user.id), username, self.reply_text.value, time.time()))
+        db.commit()
+        await interaction.response.send_message(f"🤫 Your reply has been indexed onto Feed #{self.post_id}!", ephemeral=True)
 
 class SocialFeedButtons(discord.ui.View):
     def __init__(self, post_id):
@@ -67,6 +93,12 @@ class SocialFeedButtons(discord.ui.View):
         await interaction.message.edit(view=self)
         await interaction.response.defer()
 
+    # 💬 NEW CLICKABLE REPLY TRIGGER BUTTON
+    @discord.ui.button(label="💬 Reply", style=discord.ButtonStyle.blurple, custom_id="social_reply_btn")
+    async def reply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Open the pop-up text field box for typing the tea
+        await interaction.response.send_modal(ReplyModal(self.post_id))
+
 # 🤖 CLEAN GLOBAL BOT INITIALIZATION ENGINE
 class Bot(discord.Client):
     def __init__(self):
@@ -91,21 +123,33 @@ async def post(interaction: discord.Interaction, text_content: str, upload_art_u
 
 @bot.tree.command(name="fyp", description="View the top trending posts on the KUV algorithm!")
 async def fyp(interaction: discord.Interaction):
+    # Fixes the 3-second timeout constraint instantly
+    await interaction.response.defer()
+    
     cursor.execute("SELECT post_id, username, content, image_url, likes_count, reposts_count, bot_likes FROM posts ORDER BY (likes_count + bot_likes + (reposts_count * 2)) DESC LIMIT 5")
     trending_posts = cursor.fetchall()
     
     if not trending_posts:
-        return await interaction.response.send_message("🦋 The FYP is empty right now. Be the first to use `/post`!", ephemeral=True)
+        return await interaction.followup.send("🦋 The FYP is empty right now. Be the first to use `/post`!", ephemeral=True)
         
-    await interaction.response.defer()
-    
     for row in trending_posts:
         post_id, username, content, img_url, likes, reps, b_likes = row
         total_likes = likes + b_likes
         
+        # Gather all replies registered to this post thread from the database
+        cursor.execute("SELECT username, content FROM replies WHERE post_id = ? ORDER BY timestamp ASC", (post_id,))
+        all_replies = cursor.fetchall()
+        
+        # Build the dynamic thread visualization string
+        thread_text = content
+        if all_replies:
+            thread_text += "\n\n─── 💬 NETZ THREAD ───"
+            for r_user, r_content in all_replies:
+                thread_text += f"\n**@{r_user}**: {r_content}"
+        
         embed = discord.Embed(
             title=f"🔥 TRENDING ON KUV • {username}",
-            description=content,
+            description=thread_text,
             color=0xffa500
         )
         embed.set_footer(text=f"Feed ID: #{post_id} • 💖 {total_likes} Likes • 🔁 {reps} Reposts")
@@ -113,7 +157,8 @@ async def fyp(interaction: discord.Interaction):
             embed.set_image(url=img_url)
             
         view = SocialFeedButtons(post_id)
-        await interaction.channel.send(embed=embed, view=view)
+        # Uses followup tracking token to permanently clear the "Did Not Respond" error
+        await interaction.followup.send(embed=embed, view=view)
 
 @bot.tree.command(name="add_likes", description="Admin Only: Inject bot likes onto a trending post!")
 async def add_likes(interaction: discord.Interaction, post_id: int, amount: int):
@@ -141,5 +186,5 @@ def run_web_server():
 # Start the web server in a background thread so it doesn't block the bot
 threading.Thread(target=run_web_server, daemon=True).start()
 
-# Pulls your secure token from your Render Environment variable vault safely
+# Pulls your secure token from your Environment variable vault safely
 bot.run(os.getenv("TOKEN_PLACEHOLDER"))
