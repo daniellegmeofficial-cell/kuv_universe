@@ -16,7 +16,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS reposts (user_id TEXT, post_id INTE
 db.commit()
 
 # YOUR DISCORD USER ID HERE (Only you can use the admin add_likes command!)
-ADMIN_USER_ID = "YOUR_PERSONAL_DISCORD_USER_ID"
+ADMIN_USER_ID = "968948615726911488"
 
 class SocialFeedButtons(discord.ui.View):
     def __init__(self, post_id):
