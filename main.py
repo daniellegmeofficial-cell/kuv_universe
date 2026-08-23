@@ -110,7 +110,7 @@ async def fyp(interaction: discord.Interaction):
         embed = discord.Embed(
             title=f"🔥 TRENDING ON KUV • {username}",
             description=content,
-            color=0xffbbce
+            color=0xffa500
         )
         embed.set_footer(text=f"Feed ID: #{post_id} • 💖 {total_likes} Likes • 🔁 {reps} Reposts")
         if img_url:
