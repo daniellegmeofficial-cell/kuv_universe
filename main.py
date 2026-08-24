@@ -29,7 +29,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS hashtags
 db.commit()
 
 # 👥 MASTER ADMIN REGISTRY LIST (Paste numerical IDs inside this bracket list)
-ADMIN_USER_IDS = ["YOUR_PERSONAL_DISCORD_USER_ID", "HAEMINS_DISCORD_USER_ID"]
+ADMIN_USER_IDS = ["968948615726911488", "1211031738839728132"]
 
 # Helper Function: Extract and log hashtags dynamically from post text strings
 def index_hashtags(post_id, text):
