@@ -156,8 +156,8 @@ class Bot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        await self.tree.sync()
-        print("⚡ KUV Advanced Framework Synced!")
+        # Bypasses the global sync constraint to force an instant connection
+        print("⚡ KUV Advanced Framework Initialized!")
 
 bot = Bot()
 
@@ -176,12 +176,14 @@ async def post(interaction: discord.Interaction, text_content: str, upload_art_u
     index_hashtags(post_id, text_content)
     await interaction.response.send_message(f"✨ Posted successfully! Assigned Feed ID: #{post_id}.", ephemeral=True)
 
+
 # 🗑️ DELETE POST TOOL
 @bot.tree.command(name="delete_post", description="Delete an active post from the KUV framework.")
 async def delete_post(interaction: discord.Interaction, post_id: int):
     user_id = str(interaction.user.id)
     cursor.execute("SELECT user_id FROM posts WHERE post_id = ?", (post_id,))
     res = cursor.fetchone()
+
     
     if not res:
         return await interaction.response.send_message("❌ This Post ID could not be found.", ephemeral=True)
