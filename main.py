@@ -21,7 +21,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS replies
 cursor.execute('''CREATE TABLE IF NOT EXISTS followers 
                   (follower_id TEXT, following_id TEXT, PRIMARY KEY (follower_id, following_id))''')
 
-# 👥 NEW EXTENSION TABLES: HASHTAG INDEX & CUSTOM USERNAMES
+# 👥 EXTENSION TABLES: HASHTAG INDEX & CUSTOM USERNAMES
 cursor.execute('''CREATE TABLE IF NOT EXISTS user_profiles 
                   (user_id TEXT PRIMARY KEY, custom_username TEXT, bio TEXT DEFAULT 'No bio set.', joined_timestamp REAL)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS hashtags 
