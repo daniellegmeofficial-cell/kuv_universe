@@ -109,7 +109,7 @@ class SocialFeedButtons(discord.ui.View):
         
         cursor.execute("SELECT reposts_count FROM posts WHERE post_id = ?", (self.post_id,))
         reps = cursor.fetchone()
-        button.label = f"🔁 Repost ({reps[0]})"
+        button.label = f"🔁 Repost ({reps})"
         await interaction.message.edit(view=self)
         await interaction.response.defer()
 
